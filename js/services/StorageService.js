@@ -175,16 +175,36 @@ class StorageService {
                 .order('created_at', { ascending: true });
 
             if (!errProj && Array.isArray(rowsProyectos) && rowsProyectos.length > 0) {
-                const mappedProjects = rowsProyectos.map((row) => ({
-                    id: row.id,
-                    name: row.titulo,
-                    category: row.categoria || 'otros',
-                    image: row.imagen_url || '',
-                    model: row.modelo_3d_url || '',
-                    embedType: row.enlace_proyecto ? 'sketchfab' : '',
-                    embedUrl: row.enlace_proyecto || '',
-                    description: row.descripcion || ''
-                }));
+                const mappedProjects = rowsProyectos.map((row) => {
+                    const rawLink = row.enlace_proyecto || '';
+                    const isGalleryLink = rawLink.startsWith('2d-gallery:');
+                    let galleryImages = [];
+                    if (isGalleryLink) {
+                        try {
+                            const parsed = JSON.parse(rawLink.slice('2d-gallery:'.length));
+                            if (Array.isArray(parsed)) {
+                                galleryImages = parsed.filter(Boolean);
+                            }
+                        } catch {}
+                    }
+                    const is2D = isGalleryLink || (!row.modelo_3d_url && !rawLink) || row.categoria === '2d';
+                    if (is2D && galleryImages.length === 0 && row.imagen_url) {
+                        galleryImages = [row.imagen_url];
+                    }
+
+                    return {
+                        id: row.id,
+                        name: row.titulo,
+                        category: row.categoria || 'otros',
+                        type: is2D ? '2d' : '3d',
+                        image: row.imagen_url || galleryImages[0] || '',
+                        images: galleryImages,
+                        model: is2D ? '' : (row.modelo_3d_url || ''),
+                        embedType: !is2D && rawLink ? 'sketchfab' : '',
+                        embedUrl: !is2D ? rawLink : '',
+                        description: row.descripcion || ''
+                    };
+                });
                 this.setJSON(AppConfig.STORAGE_KEYS.PROJECTS, mappedProjects, { syncCloud: false });
                 updatedAny = true;
             }
@@ -349,16 +369,29 @@ class StorageService {
 
         if (projects.length === 0) return;
 
-        const payload = projects.map((proj, index) => ({
-            titulo: proj.name,
-            categoria: proj.category || 'otros',
-            imagen_url: proj.image || '',
-            modelo_3d_url: proj.model || '',
-            enlace_proyecto: proj.embedUrl || '',
-            descripcion: proj.description || '',
-            orden: index + 1,
-            activo: true
-        }));
+        const payload = projects.map((proj, index) => {
+            const is2D = proj.type === '2d' || (!proj.model && !proj.embedUrl) || proj.category === '2d';
+            const galleryList =
+                Array.isArray(proj.images) && proj.images.length > 0
+                    ? proj.images
+                    : proj.image
+                    ? [proj.image]
+                    : [];
+            const enlaceVal = is2D
+                ? `2d-gallery:${JSON.stringify(galleryList)}`
+                : proj.embedUrl || '';
+
+            return {
+                titulo: proj.name,
+                categoria: proj.category || 'otros',
+                imagen_url: proj.image || galleryList[0] || '',
+                modelo_3d_url: is2D ? '' : (proj.model || ''),
+                enlace_proyecto: enlaceVal,
+                descripcion: proj.description || '',
+                orden: index + 1,
+                activo: true
+            };
+        });
 
         const { error: insError } = await this.supabase.from(table).insert(payload);
         if (insError) {
@@ -432,8 +465,24 @@ class StorageService {
         }
     }
 
+    readFileAsDataUrl(file) {
+        return new Promise((resolve) => {
+            if (!file) {
+                resolve(null);
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result || null);
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(file);
+        });
+    }
+
     async uploadAssetToCloud(file, folder = 'proyectos') {
-        if (!this.supabase || !file) return null;
+        if (!file) return null;
+        if (!this.supabase) {
+            return file.type?.startsWith('image/') ? this.readFileAsDataUrl(file) : null;
+        }
         const bucket = this.supabaseConfig.BUCKET;
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         const filePath = `${folder}/${Date.now()}_${safeName}`;
@@ -448,6 +497,9 @@ class StorageService {
 
         if (uploadError) {
             console.warn(`No se pudo subir el archivo a Supabase Storage (${folder}):`, uploadError.message);
+            if (file.type && file.type.startsWith('image/')) {
+                return this.readFileAsDataUrl(file);
+            }
             return null;
         }
 

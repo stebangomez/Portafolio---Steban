@@ -32,6 +32,7 @@ class AppConfig {
     };
 
     static DEFAULT_CATEGORIES = [
+        { slug: '2d', label: '2D' },
         { slug: 'chimeneas', label: 'Chimeneas' },
         { slug: 'columnas', label: 'Columnas' },
         { slug: 'counters', label: 'Counters' },
@@ -218,7 +219,9 @@ class AppConfig {
         {
             name: 'Columna Suavitel Madres Avenida 6ta',
             category: 'columnas',
+            type: '2d',
             image: 'Assets/Renders/Columna Suavitel Madres Avenida 6ta.png',
+            images: ['Assets/Renders/Columna Suavitel Madres Avenida 6ta.png'],
             model: '',
             description: 'Columna promocional de alto impacto visual diseñada para la campaña Día de las Madres de Suavitel en Avenida 6ta.'
         }

@@ -272,7 +272,7 @@ nav {
     justify-content: center;
     align-items: center;
     height: 100%;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .glow-spot {
@@ -282,7 +282,7 @@ nav {
 
 .render-placeholder {
     width: 100%;
-    max-width: 550px;
+    max-width: 720px;
     height: 100%;
     background: transparent;
     border: none;
@@ -302,12 +302,13 @@ nav {
 
 /* Hero render image — mostrarla completa y grande */
 .hero-render-img {
+    --hero-model-scale: 1.24;
     width: 100%;
-    max-width: 600px;
+    max-width: 720px;
     height: auto;
-    max-height: 76vh;
+    max-height: 85vh;
     object-fit: contain;
-    transform: scale(1.08) translate(-8px, 8px);
+    transform: scale(var(--hero-model-scale)) translate(-8px, 8px);
     border-radius: 0;
     animation: heroFloat 6s ease-in-out infinite;
 }
@@ -316,11 +317,11 @@ nav {
 
     0%,
     100% {
-        transform: scale(1.08) translate(-8px, 8px);
+        transform: scale(var(--hero-model-scale, 1.24)) translate(-8px, 8px);
     }
 
     50% {
-        transform: scale(1.04) translate(-6px, 6px);
+        transform: scale(calc(var(--hero-model-scale, 1.24) - 0.04)) translate(-6px, 6px);
     }
 }
 
@@ -2002,5 +2003,386 @@ footer {
         grid-template-columns: 1fr;
     }
 }
+
+/* ================= PROYECTOS 2D: SLIDER, ZOOM Y GESTIÓN DE GALERÍA ================= */
+.card-3d-badge.badge-2d {
+    background: rgba(254, 145, 20, 0.18);
+    color: var(--accent-orange-light);
+    border-color: rgba(254, 145, 20, 0.45);
+}
+
+.project-card:hover .card-3d-badge.badge-2d {
+    background: var(--accent-orange-light);
+    color: var(--bg-dark);
+    box-shadow: 0 0 20px rgba(254, 145, 20, 0.45);
+}
+
+.field-helper-text {
+    color: var(--text-gray);
+    font-size: 0.78rem;
+    line-height: 1.45;
+    margin-bottom: 0.35rem;
+}
+
+.upload-trigger-accent {
+    background: rgba(229, 131, 18, 0.2);
+    color: var(--accent-orange-light);
+}
+
+.upload-trigger-accent:hover {
+    background: var(--accent-orange-light);
+    color: var(--bg-dark);
+}
+
+.admin-2d-gallery-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.65rem;
+    padding: 0.75rem;
+    border-radius: 10px;
+    background: rgba(7, 11, 20, 0.6);
+    border: 1px dashed rgba(255, 255, 255, 0.14);
+    min-height: 74px;
+    align-items: center;
+}
+
+.admin-2d-empty-hint {
+    color: var(--text-gray);
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.admin-2d-gallery-item {
+    position: relative;
+    width: 96px;
+    height: 76px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1.5px solid rgba(255, 255, 255, 0.18);
+    background: rgba(13, 20, 36, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.admin-2d-gallery-item.active-slide,
+.admin-2d-gallery-item:hover {
+    border-color: var(--primary-cyan);
+    transform: translateY(-2px);
+}
+
+.admin-2d-gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 4px;
+    cursor: pointer;
+}
+
+.admin-2d-item-index {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    background: rgba(7, 11, 20, 0.85);
+    color: var(--primary-cyan);
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    pointer-events: none;
+}
+
+.admin-2d-item-controls {
+    position: absolute;
+    bottom: 3px;
+    right: 3px;
+    left: 3px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 3px;
+}
+
+.admin-2d-ctrl-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(7, 11, 20, 0.88);
+    color: var(--text-light);
+    font-size: 0.65rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.admin-2d-ctrl-btn:hover {
+    background: var(--primary-cyan);
+    color: var(--bg-dark);
+}
+
+.admin-2d-ctrl-btn.delete {
+    color: #ff6b6b;
+    border-color: rgba(255, 107, 107, 0.5);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.admin-2d-ctrl-btn.delete:hover {
+    background: #ff6b6b;
+    color: #ffffff;
+}
+
+/* Visor 2D dentro del Modal */
+.modal-2d-slider {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+}
+
+.modal-2d-viewport {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    scroll-axis-lock: none;
+    overscroll-behavior: none;
+    position: relative;
+    cursor: zoom-in;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 229, 255, 0.35) rgba(7, 11, 20, 0.4);
+}
+
+.modal-2d-viewport:focus-visible {
+    outline: 2px solid var(--primary-cyan);
+    outline-offset: -2px;
+}
+
+.modal-2d-viewport.is-zoomed {
+    cursor: grab;
+}
+
+.modal-2d-viewport.is-zoomed.is-panning {
+    cursor: grabbing;
+}
+
+@supports not (scroll-axis-lock: none) {
+    .modal-2d-viewport.is-zoomed {
+        touch-action: none;
+    }
+}
+
+.modal-2d-surface {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-width: 100%;
+    min-height: 100%;
+}
+
+.modal-2d-img {
+    position: absolute;
+    display: block;
+    max-width: none;
+    max-height: none;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* Botones Anterior / Siguiente del Slider 2D */
+.modal-slider-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    background: rgba(7, 11, 20, 0.82);
+    backdrop-filter: blur(8px);
+    color: var(--text-light);
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 6;
+    transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, transform 0.25s ease;
+}
+
+.modal-slider-nav:hover {
+    background: rgba(0, 229, 255, 0.2);
+    border-color: var(--primary-cyan);
+    color: var(--primary-cyan);
+    transform: translateY(-50%) scale(1.08);
+}
+
+.modal-slider-nav.prev {
+    left: 16px;
+}
+
+.modal-slider-nav.next {
+    right: 16px;
+}
+
+/* Contador de diapositivas */
+.modal-2d-counter {
+    position: absolute;
+    top: 14px;
+    left: 16px;
+    background: rgba(7, 11, 20, 0.82);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: var(--primary-cyan);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    z-index: 6;
+}
+
+/* Barra flotante de controles de Zoom */
+.modal-zoom-toolbar {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(7, 11, 20, 0.85);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    padding: 0.3rem 0.45rem;
+    border-radius: 999px;
+    z-index: 6;
+}
+
+.modal-zoom-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-light);
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.modal-zoom-btn.reset {
+    width: auto;
+    padding: 0 0.55rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+}
+
+.modal-zoom-btn:hover {
+    border-color: var(--primary-cyan);
+    color: var(--primary-cyan);
+    background: rgba(0, 229, 255, 0.14);
+}
+
+.modal-zoom-level {
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: var(--primary-cyan);
+    min-width: 44px;
+    text-align: center;
+}
+
+/* Tira de miniaturas inferior del Slider 2D */
+.modal-2d-thumbs {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.85rem;
+    background: rgba(7, 11, 20, 0.86);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    overflow-x: auto;
+    z-index: 5;
+}
+
+.modal-2d-thumb {
+    width: 56px;
+    height: 44px;
+    border-radius: 6px;
+    border: 2px solid rgba(255, 255, 255, 0.18);
+    background: rgba(13, 20, 36, 0.9);
+    padding: 2px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: border-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+    opacity: 0.65;
+}
+
+.modal-2d-thumb:hover {
+    opacity: 0.95;
+    transform: translateY(-2px);
+}
+
+.modal-2d-thumb.active {
+    border-color: var(--primary-cyan);
+    opacity: 1;
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.35);
+}
+
+.modal-2d-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* Editor de imágenes 2D dentro del modal (Modo Admin) */
+.modal-admin-2d-editor {
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.modal-admin-2d-editor label {
+    font-size: 0.78rem;
+    color: var(--accent-orange-light);
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .modal-slider-nav {
+        width: 38px;
+        height: 38px;
+        font-size: 1rem;
+    }
+
+    .modal-slider-nav.prev {
+        left: 8px;
+    }
+
+    .modal-slider-nav.next {
+        right: 8px;
+    }
+
+    .modal-2d-thumb {
+        width: 46px;
+        height: 36px;
+    }
+}
+
 
 

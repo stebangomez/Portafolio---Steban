@@ -7,7 +7,7 @@
     <title>Steban Gómez | Portafolio 3D y POP</title>
     <meta name="description"
         content="Portafolio de Steban Gómez — Diseñador Industrial especializado en POP, modelado 3D y materialización de productos para retail.">
-    <link rel="stylesheet" href="style.css?v=4">
+    <link rel="stylesheet" href="style.css?v=7">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -152,6 +152,7 @@
                         <div class="field-group">
                             <label for="project-category">Categoría</label>
                             <select id="project-category" name="project-category">
+                                <option value="2d">2D</option>
                                 <option value="chimeneas">Chimeneas</option>
                                 <option value="columnas">Columnas</option>
                                 <option value="counters">Counters</option>
@@ -162,20 +163,38 @@
                             </select>
                         </div>
                         <div class="field-group">
-                            <label for="project-image">Imagen del proyecto (Render)</label>
+                            <label for="project-type">Formato / Tipo de proyecto</label>
+                            <select id="project-type" name="project-type">
+                                <option value="3d">Proyecto 3D (Modelo .glb / Sketchfab)</option>
+                                <option value="2d">Proyecto 2D (Imagen / Slider con Zoom)</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label for="project-image">Imagen de portada (Preview tarjeta)</label>
                             <div class="input-upload-group">
-                                <input id="project-image" name="project-image" type="text" placeholder="Sube una imagen o pega URL..." required>
-                                <button type="button" id="trigger-project-image-btn" class="upload-trigger-btn">Subir imagen</button>
+                                <input id="project-image" name="project-image" type="text" placeholder="Sube imagen de portada o pega URL..." required>
+                                <button type="button" id="trigger-project-image-btn" class="upload-trigger-btn">Subir portada</button>
                                 <input id="project-image-file" type="file" accept="image/*" class="hidden">
                             </div>
                         </div>
-                        <div class="field-group">
+                        <div id="project-3d-fields" class="field-group field-group-full">
                             <label for="project-model">Modelo 3D (.glb o enlace Sketchfab)</label>
                             <div class="input-upload-group">
                                 <input id="project-model" name="project-model" type="text" placeholder="Pega link de Sketchfab o sube .glb...">
                                 <button type="button" id="trigger-project-model-btn" class="upload-trigger-btn">Subir .glb</button>
                                 <input id="project-model-file" type="file" accept=".glb,.gltf" class="hidden">
                             </div>
+                        </div>
+                        <div id="project-2d-fields" class="field-group field-group-full hidden">
+                            <label for="project-2d-new-image">Imágenes del Proyecto 2D (Modo Slider con Zoom — 1 o varias)</label>
+                            <p class="field-helper-text">La portada se usa como vista previa. Agrega aquí 1 o varias imágenes para el slider interactivo con zoom (si no agregas adicionales, se mostrará la imagen de portada).</p>
+                            <div class="input-upload-group">
+                                <input id="project-2d-new-image" type="text" placeholder="Pega URL de imagen o sube una o varias imágenes...">
+                                <button type="button" id="add-2d-url-btn" class="upload-trigger-btn">+ Agregar URL</button>
+                                <button type="button" id="trigger-2d-files-btn" class="upload-trigger-btn upload-trigger-accent">Subir imágenes</button>
+                                <input id="project-2d-files" type="file" accept="image/*" multiple class="hidden">
+                            </div>
+                            <div id="project-2d-gallery-list" class="admin-2d-gallery-list"></div>
                         </div>
                         <div class="field-group field-group-full">
                             <label for="project-description">Descripción del proyecto</label>
@@ -530,6 +549,28 @@
                     style="width: 100%; height: 100%; border: none; display: none;"></iframe>
                 <img id="modal-image-fallback" alt="Vista previa del proyecto"
                     style="width: 100%; height: 100%; object-fit: contain; display: none; padding: 1rem;">
+                <div id="modal-2d-slider" class="modal-2d-slider hidden">
+                    <div id="modal-2d-viewport" class="modal-2d-viewport" tabindex="0" role="region"
+                        aria-label="Visor de imagen 2D con zoom y desplazamiento">
+                        <div id="modal-2d-surface" class="modal-2d-surface">
+                            <img id="modal-2d-img" class="modal-2d-img" alt="Imagen 2D del proyecto" draggable="false">
+                        </div>
+                    </div>
+
+                    <button type="button" id="modal-2d-prev" class="modal-slider-nav prev hidden" aria-label="Imagen anterior">&#10094;</button>
+                    <button type="button" id="modal-2d-next" class="modal-slider-nav next hidden" aria-label="Imagen siguiente">&#10095;</button>
+
+                    <div id="modal-2d-counter" class="modal-2d-counter hidden">1 / 1</div>
+
+                    <div class="modal-zoom-toolbar" role="toolbar" aria-label="Controles de zoom">
+                        <button type="button" id="modal-zoom-out" class="modal-zoom-btn" title="Alejar zoom" aria-label="Alejar zoom">&minus;</button>
+                        <span id="modal-zoom-level" class="modal-zoom-level">100%</span>
+                        <button type="button" id="modal-zoom-in" class="modal-zoom-btn" title="Acercar zoom" aria-label="Acercar zoom">+</button>
+                        <button type="button" id="modal-zoom-reset" class="modal-zoom-btn reset" title="Restablecer zoom" aria-label="Restablecer zoom">1:1</button>
+                    </div>
+
+                    <div id="modal-2d-thumbs" class="modal-2d-thumbs hidden"></div>
+                </div>
                 <model-viewer id="modal-viewer" src="" alt="Visor 3D del proyecto" auto-rotate auto-rotate-delay="0"
                     rotation-per-second="30deg" camera-controls touch-action="pan-y" interaction-prompt="none"
                     loading="lazy" reveal="auto" shadow-intensity="0.4" shadow-softness="0.6" exposure="1"
@@ -550,6 +591,16 @@
                         <textarea id="modal-desc-textarea" rows="2" placeholder="Escribe o actualiza la descripción de este proyecto..."></textarea>
                         <button type="button" id="modal-save-desc-btn" class="btn-primary">Guardar descripción</button>
                     </div>
+                </div>
+                <div id="modal-admin-2d-editor" class="modal-admin-2d-editor hidden">
+                    <label for="modal-admin-2d-url">Imágenes del Slider 2D (Modo Edición — 1 o varias imágenes)</label>
+                    <div class="input-upload-group">
+                        <input id="modal-admin-2d-url" type="text" placeholder="Pega URL de imagen o sube archivos al slider...">
+                        <button type="button" id="modal-admin-add-url-btn" class="upload-trigger-btn">+ URL</button>
+                        <button type="button" id="modal-admin-upload-btn" class="upload-trigger-btn upload-trigger-accent">+ Subir fotos</button>
+                        <input id="modal-admin-2d-files" type="file" accept="image/*" multiple class="hidden">
+                    </div>
+                    <div id="modal-admin-2d-list" class="admin-2d-gallery-list"></div>
                 </div>
             </div>
         </div>
