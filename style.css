@@ -163,7 +163,7 @@ nav {
     padding-top: 90px;
     padding-bottom: 30px;
     position: relative;
-    overflow: visible;
+    overflow: hidden;
     box-sizing: border-box;
 }
 
@@ -302,13 +302,13 @@ nav {
 
 /* Hero render image — mostrarla completa y grande */
 .hero-render-img {
-    --hero-model-scale: 1.24;
+    --hero-model-scale: 1.8;
     width: 100%;
     max-width: 720px;
     height: auto;
     max-height: 85vh;
     object-fit: contain;
-    transform: scale(var(--hero-model-scale)) translate(-8px, 8px);
+    transform: scale(var(--hero-model-scale)) translate(4px, 6px);
     border-radius: 0;
     animation: heroFloat 6s ease-in-out infinite;
 }
@@ -317,11 +317,11 @@ nav {
 
     0%,
     100% {
-        transform: scale(var(--hero-model-scale, 1.24)) translate(-8px, 8px);
+        transform: scale(var(--hero-model-scale, 1.8)) translate(4px, 6px);
     }
 
     50% {
-        transform: scale(calc(var(--hero-model-scale, 1.24) - 0.04)) translate(-6px, 6px);
+        transform: scale(calc(var(--hero-model-scale, 1.8) - 0.04)) translate(4px, 4px);
     }
 }
 
